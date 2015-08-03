@@ -63,6 +63,103 @@ class FruitsController < ApplicationController
     end
   end
 
+  def download_ss
+    # 季節毎にシート分けしたエクセル book をつくろう(Spreadsheet編)
+    book = Spreadsheet::Workbook.new
+    Season.order(:id).each do |s|
+      # シート作成
+      sheet = book.create_worksheet name: s.name
+      # 一行目はヘッダー
+      sheet.update_row(0, "ID", "名前")
+      # データ行
+      idx = 1
+      Fruit.where(season_id: s.id).order('updated_at DESC').each do |fruit|
+        sheet.row(idx).push(fruit.id)
+        sheet.row(idx).push(fruit.name)
+        idx += 1
+      end
+    end
+
+    filename = "fruits_by_season#{Time.now.strftime('%Y%m%d%H%M%S')}_ss.xls"
+
+    require 'stringio'
+    data = StringIO.new ''
+    book.write data
+    send_data(
+      data.string.bytes.to_a.pack("C*"),
+      filename: filename,
+      type: "application/excel")
+  end
+
+  def upload_ss
+    book = Spreadsheet.open params[:file].tempfile.path
+
+    Fruit.transaction do
+      book.worksheets.each do |ws|
+        season = Season.find_by_name!(ws.name)
+        ws.rows.each_with_index do |row, idx|
+          next if idx < 1
+          Fruit.create(season: season, name: row[0])
+        end
+      end
+    end
+
+    redirect_to fruits_path
+  end
+
+  def download_rx
+    # 季節毎にシート分けしたエクセル book をつくろう(rubyXL編)
+    book = RubyXL::Workbook.new
+    Season.order(:id).each_with_index do |s, idx|
+      # シート作成
+      if idx <1
+        sheet = book[0]
+        sheet.sheet_name = s.name
+      else
+        sheet = book.add_worksheet(s.name)
+      end
+      # 一行目はヘッダー
+      sheet.add_cell(0, 0, 'ID')   #A1
+      sheet.add_cell(0, 1, '名前') #B1
+      # データ行
+      idx = 1
+      Fruit.where(season_id: s.id).order('updated_at DESC').each do |fruit|
+        sheet.add_cell(idx, 0, fruit.id)
+        sheet.add_cell(idx, 1, fruit.name)
+        idx += 1
+      end
+    end
+
+    filename = "fruits_by_season#{Time.now.strftime('%Y%m%d%H%M%S')}_rx.xlsx"
+
+    send_data(
+      book.stream.read,
+      filename: filename,
+      type: "application/excel")
+  end
+
+  def upload_rx
+    book = RubyXL::Parser.parse params[:file].tempfile.path
+
+    Fruit.transaction do
+      (0...book.worksheets.size).each do |s_idx|
+        # シート毎の処理
+        sheet = book.worksheets[s_idx]
+
+        season = Season.find_by_name!(sheet.sheet_name)
+
+        (0...sheet.sheet_data.size).each do |d_idx|
+          # シート内の行毎の処理
+          cell = sheet.sheet_data.rows[d_idx][0]
+          next if cell.value.blank?
+          Fruit.create(season: season, name: cell.value)
+        end
+      end
+    end
+
+    redirect_to fruits_path
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_fruit

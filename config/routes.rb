@@ -1,6 +1,12 @@
 Rails.application.routes.draw do
-  resources :seasons
-  resources :fruits
+  resources :fruits do
+    collection do
+      post 'upload_ss'
+      post 'download_ss'
+      post 'upload_rx'
+      post 'download_rx'
+    end
+  end
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 

@@ -2,6 +2,32 @@
 
 <h1>Listing Fruits</h1>
 
+<h2>Spreadsheet</h2>
+<%= form_tag upload_ss_fruits_path, { multipart: true } do %>
+  <%= file_field_tag :file %>
+  <br />
+  <%= submit_tag "Spreadsheet を使ってxls形式をアップロード" %>
+<% end %>
+<br />
+
+<%= form_tag download_ss_fruits_path do %>
+  <%= submit_tag "Spreadsheet を使ってxls形式でダウンロード" %>
+<% end %>
+<br />
+
+<h2>rubyXL</h2>
+<%= form_tag upload_rx_fruits_path, { multipart: true } do %>
+  <%= file_field_tag :file %>
+  <br />
+  <%= submit_tag "rubyXL を使ってxls形式をアップロード" %>
+<% end %>
+<br />
+
+<%= form_tag download_rx_fruits_path do %>
+  <%= submit_tag "rubyXL を使ってxls形式でダウンロード" %>
+<% end %>
+<br />
+
 <table>
   <thead>
     <tr>
